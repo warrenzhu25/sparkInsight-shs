@@ -37,6 +37,7 @@ spark-insight apps
 spark-insight jobs local-0001
 spark-insight stages local-0001
 spark-insight executors local-0001
+spark-insight diff local-0001 local-0002
 ```
 
 Use `--server` or `SPARK_INSIGHT_SERVER` to point the CLI at a remote service.

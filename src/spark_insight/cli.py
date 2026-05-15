@@ -169,6 +169,43 @@ def upload(ctx: click.Context, eventlog: str) -> None:
     console.print(f"Uploaded {app['id']}: {app['name']}")
 
 
+@cli.command()
+@click.argument("app_id_1")
+@click.argument("app_id_2")
+@click.pass_context
+def diff(ctx: click.Context, app_id_1: str, app_id_2: str) -> None:
+    """Compare two applications."""
+    response = _client(ctx).post(
+        "/api/insight/diff",
+        json={"app_id_1": app_id_1, "app_id_2": app_id_2},
+    )
+    payload = response.json()
+    table = Table(title=f"Diff: {app_id_1} -> {app_id_2}")
+    table.add_column("Metric")
+    table.add_column("Delta")
+    table.add_row("Duration", f"{payload['duration_diff'] / 1000:+.1f}s")
+    table.add_row("Jobs", f"{payload['job_count_diff']:+d}")
+    table.add_row("Stages", f"{payload['stage_count_diff']:+d}")
+    table.add_row("Tasks", f"{payload['task_count_diff']:+d}")
+    table.add_row("Performance", payload["performance_change"])
+    console.print(table)
+    for difference in payload.get("key_differences", []):
+        console.print(f"- {difference}")
+
+
+@cli.command()
+@click.argument("app_id")
+@click.argument("question")
+@click.pass_context
+def ask(ctx: click.Context, app_id: str, question: str) -> None:
+    """Ask a configured analysis provider about an application."""
+    response = _client(ctx).post(
+        "/api/insight/analyze",
+        json={"app_id": app_id, "question": question},
+    )
+    console.print(Markdown(response.json()["summary"]))
+
+
 def _client(ctx: click.Context) -> httpx.Client:
     client = httpx.Client(base_url=ctx.obj["server"], timeout=60)
     original_request = client.request
