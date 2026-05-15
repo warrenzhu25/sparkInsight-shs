@@ -14,4 +14,6 @@ def test_parser_extracts_application_jobs_stages_tasks_and_executors():
     assert parsed.stages[0].status == "COMPLETE"
     assert parsed.stages[0].inputBytes == 3072
     assert len(parsed.tasks["0:0"]) == 2
+    assert parsed.tasks["0:0"][0].executorRunTime == 900
+    assert parsed.tasks["0:0"][1].shuffleWriteBytes == 1024
     assert parsed.executors[0].totalTasks == 2

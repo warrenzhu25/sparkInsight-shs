@@ -195,6 +195,10 @@ class _ParseState:
         attempt_id = int(event.get("Stage Attempt ID") or 0)
         info = event.get("Task Info") or {}
         metrics = event.get("Task Metrics") or {}
+        input_metrics = metrics.get("Input Metrics") or {}
+        output_metrics = metrics.get("Output Metrics") or {}
+        shuffle_read = metrics.get("Shuffle Read Metrics") or {}
+        shuffle_write = metrics.get("Shuffle Write Metrics") or {}
         task_status = str(event.get("Task End Reason", {}).get("Reason") or "Success")
         failed = bool(info.get("Failed")) or task_status != "Success"
         error_message = _task_error(event.get("Task End Reason") or {})
@@ -204,6 +208,20 @@ class _ParseState:
             attempt=int(info.get("Attempt") or 0),
             launchTime=format_spark_time(int(info.get("Launch Time") or 0)),
             duration=max(int(info.get("Finish Time") or 0) - int(info.get("Launch Time") or 0), 0),
+            executorRunTime=int(metrics.get("Executor Run Time") or 0),
+            executorCpuTime=int(metrics.get("Executor CPU Time") or 0),
+            jvmGcTime=int(metrics.get("JVM GC Time") or 0),
+            inputBytes=int(input_metrics.get("Bytes Read") or 0),
+            inputRecords=int(input_metrics.get("Records Read") or 0),
+            outputBytes=int(output_metrics.get("Bytes Written") or 0),
+            outputRecords=int(output_metrics.get("Records Written") or 0),
+            shuffleReadBytes=int(shuffle_read.get("Remote Bytes Read") or 0)
+            + int(shuffle_read.get("Local Bytes Read") or 0),
+            shuffleReadRecords=int(shuffle_read.get("Records Read") or 0),
+            shuffleWriteBytes=int(shuffle_write.get("Shuffle Bytes Written") or 0),
+            shuffleWriteRecords=int(shuffle_write.get("Shuffle Records Written") or 0),
+            memoryBytesSpilled=int(metrics.get("Memory Bytes Spilled") or 0),
+            diskBytesSpilled=int(metrics.get("Disk Bytes Spilled") or 0),
             executorId=str(info.get("Executor ID") or ""),
             host=str(info.get("Host") or ""),
             status="FAILED" if failed else "SUCCESS",

@@ -15,6 +15,7 @@ from spark_insight.core.models import (
     ParsedApplication,
     StageData,
     TaskData,
+    TaskMetricDistributions,
 )
 from spark_insight.core.query import QueryEngine
 
@@ -96,9 +97,32 @@ class ApplicationService:
         sort_by: str = "taskId",
     ) -> list[TaskData]:
         tasks = self._load(app_id).tasks.get(f"{stage_id}:{attempt_id}", [])
-        if tasks and hasattr(tasks[0], sort_by):
-            tasks = sorted(tasks, key=lambda task: getattr(task, sort_by))
+        tasks = self._sort_tasks(tasks, sort_by)
         return tasks[offset : offset + length]
+
+    def get_task_summary(
+        self,
+        app_id: str,
+        stage_id: int,
+        attempt_id: int,
+        quantiles: list[float] | None = None,
+    ) -> TaskMetricDistributions:
+        tasks = self._load(app_id).tasks.get(f"{stage_id}:{attempt_id}", [])
+        if not tasks:
+            self.get_stage(app_id, stage_id, attempt_id)
+        requested_quantiles = quantiles or [0.05, 0.25, 0.5, 0.75, 0.95]
+        return TaskMetricDistributions(
+            quantiles=requested_quantiles,
+            duration=_quantile_values(tasks, "duration", requested_quantiles),
+            executorRunTime=_quantile_values(tasks, "executorRunTime", requested_quantiles),
+            executorCpuTime=_quantile_values(tasks, "executorCpuTime", requested_quantiles),
+            jvmGcTime=_quantile_values(tasks, "jvmGcTime", requested_quantiles),
+            inputBytes=_quantile_values(tasks, "inputBytes", requested_quantiles),
+            shuffleReadBytes=_quantile_values(tasks, "shuffleReadBytes", requested_quantiles),
+            shuffleWriteBytes=_quantile_values(tasks, "shuffleWriteBytes", requested_quantiles),
+            memoryBytesSpilled=_quantile_values(tasks, "memoryBytesSpilled", requested_quantiles),
+            diskBytesSpilled=_quantile_values(tasks, "diskBytesSpilled", requested_quantiles),
+        )
 
     def get_executors(self, app_id: str) -> list[ExecutorSummary]:
         return self._load(app_id).executors
@@ -140,3 +164,24 @@ class ApplicationService:
             or name.startswith("application_")
             or "eventlog" in name
         )
+
+    @staticmethod
+    def _sort_tasks(tasks: list[TaskData], sort_by: str) -> list[TaskData]:
+        descending = sort_by.startswith("-")
+        field = sort_by[1:] if descending else sort_by
+        if not tasks or not hasattr(tasks[0], field):
+            return tasks
+        return sorted(tasks, key=lambda task: getattr(task, field), reverse=descending)
+
+
+def _quantile_values(tasks: list[TaskData], field: str, quantiles: list[float]) -> list[float]:
+    values = sorted(float(getattr(task, field)) for task in tasks)
+    if not values:
+        return [0.0 for _ in quantiles]
+    return [_nearest_rank(values, quantile) for quantile in quantiles]
+
+
+def _nearest_rank(values: list[float], quantile: float) -> float:
+    bounded = max(0.0, min(1.0, quantile))
+    index = round((len(values) - 1) * bounded)
+    return values[index]

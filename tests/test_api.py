@@ -39,3 +39,22 @@ def test_shs_filters_task_list_and_compact_problem_endpoint(tmp_path):
     assert tasks[0]["taskId"] == 2
     assert problems.status_code == 200
     assert "# No Problems" in problems.text
+
+
+def test_task_list_sorting_and_task_summary(tmp_path):
+    app = create_app(log_dir="examples/eventlogs", cache_dir=str(tmp_path))
+    client = TestClient(app)
+
+    tasks = client.get(
+        "/api/v1/applications/local-0001/stages/0/0/taskList",
+        params={"sortBy": "-duration"},
+    ).json()
+    summary = client.get(
+        "/api/v1/applications/local-0001/stages/0/0/taskSummary",
+        params={"quantiles": "0,0.5,1"},
+    ).json()
+
+    assert [task["taskId"] for task in tasks] == [2, 1]
+    assert summary["quantiles"] == [0, 0.5, 1]
+    assert summary["duration"] == [1000, 1000, 1200]
+    assert summary["inputBytes"] == [1024, 1024, 2048]

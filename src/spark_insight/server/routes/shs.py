@@ -10,6 +10,7 @@ from spark_insight.core.models import (
     JobData,
     StageData,
     TaskData,
+    TaskMetricDistributions,
 )
 from spark_insight.core.service import ApplicationService
 
@@ -78,6 +79,21 @@ async def get_task_list(
     return _service(request).get_tasks(app_id, stage_id, attempt_id, offset, length, sortBy)
 
 
+@router.get(
+    "/applications/{app_id}/stages/{stage_id}/{attempt_id}/taskSummary",
+    response_model=TaskMetricDistributions,
+)
+async def get_task_summary(
+    request: Request,
+    app_id: str,
+    stage_id: int,
+    attempt_id: int,
+    quantiles: str | None = None,
+) -> TaskMetricDistributions:
+    parsed_quantiles = _parse_quantiles(quantiles)
+    return _service(request).get_task_summary(app_id, stage_id, attempt_id, parsed_quantiles)
+
+
 @router.get("/applications/{app_id}/executors", response_model=list[ExecutorSummary])
 async def list_executors(request: Request, app_id: str) -> list[ExecutorSummary]:
     return _service(request).get_executors(app_id)
@@ -103,3 +119,9 @@ async def get_rdd_storage(request: Request, app_id: str) -> list[dict]:
 async def get_logs(request: Request, app_id: str) -> dict[str, list]:
     _service(request).get_application(app_id)
     return {"logs": []}
+
+
+def _parse_quantiles(raw: str | None) -> list[float] | None:
+    if not raw:
+        return None
+    return [float(item.strip()) for item in raw.split(",") if item.strip()]

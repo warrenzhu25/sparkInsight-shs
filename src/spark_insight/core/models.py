@@ -74,12 +74,38 @@ class TaskData(BaseModel):
     attempt: int = 0
     launchTime: str = ""
     duration: int = 0
+    executorRunTime: int = 0
+    executorCpuTime: int = 0
+    jvmGcTime: int = 0
+    inputBytes: int = 0
+    inputRecords: int = 0
+    outputBytes: int = 0
+    outputRecords: int = 0
+    shuffleReadBytes: int = 0
+    shuffleReadRecords: int = 0
+    shuffleWriteBytes: int = 0
+    shuffleWriteRecords: int = 0
+    memoryBytesSpilled: int = 0
+    diskBytesSpilled: int = 0
     executorId: str = ""
     host: str = ""
     status: str = "SUCCESS"
     taskLocality: str = ""
     speculative: bool = False
     errorMessage: str | None = None
+
+
+class TaskMetricDistributions(BaseModel):
+    quantiles: list[float]
+    duration: list[float]
+    executorRunTime: list[float]
+    executorCpuTime: list[float]
+    jvmGcTime: list[float]
+    inputBytes: list[float]
+    shuffleReadBytes: list[float]
+    shuffleWriteBytes: list[float]
+    memoryBytesSpilled: list[float]
+    diskBytesSpilled: list[float]
 
 
 class ExecutorSummary(BaseModel):
@@ -154,4 +180,3 @@ class ParsedApplication:
     tasks: dict[str, list[TaskData]]
     executors: list[ExecutorSummary]
     environment: EnvironmentInfo
-
