@@ -48,3 +48,6 @@ python3 -m pytest
 ruff check src tests
 ruff format src tests
 ```
+
+The repository CI runs the same checks across Python 3.10, 3.11, and 3.12
+using `uv`.
