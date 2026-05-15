@@ -18,6 +18,7 @@ from spark_insight.core.models import (
     TaskMetricDistributions,
 )
 from spark_insight.core.query import QueryEngine
+from spark_insight.core.utils import parse_spark_time
 
 
 class ApplicationService:
@@ -44,20 +45,20 @@ class ApplicationService:
     def list_applications(
         self,
         status: str | None = None,
+        min_date: str | None = None,
+        max_date: str | None = None,
         limit: int = 100,
     ) -> list[ApplicationInfo]:
         self.refresh_index()
         apps: list[ApplicationInfo] = []
-        for path in list(self._app_index.values())[:limit]:
+        for path in self._app_index.values():
             parsed = self.cache.get_or_parse(path)
             app = parsed.app_info
-            if status:
-                completed = bool(app.attempts and app.attempts[0].completed)
-                if status.lower() == "completed" and not completed:
-                    continue
-                if status.lower() == "running" and completed:
-                    continue
+            if not self._matches_application_filters(app, status, min_date, max_date):
+                continue
             apps.append(app)
+            if len(apps) >= limit:
+                break
         return apps
 
     def get_application(self, app_id: str) -> ApplicationInfo:
@@ -172,6 +173,29 @@ class ApplicationService:
         if not tasks or not hasattr(tasks[0], field):
             return tasks
         return sorted(tasks, key=lambda task: getattr(task, field), reverse=descending)
+
+    @staticmethod
+    def _matches_application_filters(
+        app: ApplicationInfo,
+        status: str | None,
+        min_date: str | None,
+        max_date: str | None,
+    ) -> bool:
+        attempt = app.attempts[0] if app.attempts else None
+        if status and attempt:
+            completed = attempt.completed
+            if status.lower() == "completed" and not completed:
+                return False
+            if status.lower() == "running" and completed:
+                return False
+        start_time = parse_spark_time(attempt.startTime if attempt else None)
+        min_time = parse_spark_time(min_date)
+        max_time = parse_spark_time(max_date)
+        if min_time and start_time and start_time < min_time:
+            return False
+        if max_time and start_time and start_time > max_time:
+            return False
+        return True
 
 
 def _quantile_values(tasks: list[TaskData], field: str, quantiles: list[float]) -> list[float]:

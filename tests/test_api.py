@@ -27,6 +27,14 @@ def test_shs_filters_task_list_and_compact_problem_endpoint(tmp_path):
 
     completed = client.get("/api/v1/applications", params={"status": "completed"}).json()
     running = client.get("/api/v1/applications", params={"status": "running"}).json()
+    after_start = client.get(
+        "/api/v1/applications",
+        params={"minDate": "2024-03-09T16:00:00Z"},
+    ).json()
+    before_start = client.get(
+        "/api/v1/applications",
+        params={"maxDate": "2024-03-09T15:59:59Z"},
+    ).json()
     tasks = client.get(
         "/api/v1/applications/local-0001/stages/0/0/taskList",
         params={"offset": 1, "length": 1},
@@ -35,6 +43,8 @@ def test_shs_filters_task_list_and_compact_problem_endpoint(tmp_path):
 
     assert len(completed) == 1
     assert running == []
+    assert len(after_start) == 1
+    assert before_start == []
     assert len(tasks) == 1
     assert tasks[0]["taskId"] == 2
     assert problems.status_code == 200

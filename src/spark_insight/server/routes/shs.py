@@ -34,8 +34,12 @@ async def list_applications(
     maxDate: str | None = None,
     limit: int = 100,
 ) -> list[ApplicationInfo]:
-    del minDate, maxDate
-    return _service(request).list_applications(status=status, limit=limit)
+    return _service(request).list_applications(
+        status=status,
+        min_date=minDate,
+        max_date=maxDate,
+        limit=limit,
+    )
 
 
 @router.get("/applications/{app_id}", response_model=ApplicationInfo)
