@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spark-insight"
+version = "0.1.0"
+description = "A Python-native Spark History Server compatible API with analysis extensions."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Spark Insight Contributors" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "duckdb>=0.10",
+    "click>=8.1",
+    "httpx>=0.26",
+    "rich>=13.7",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+parser = ["polars>=0.20"]
+ui = ["dash>=2.14", "dash-bootstrap-components>=1.5", "plotly>=5.0", "pandas>=2.0"]
+llm = ["anthropic>=0.30"]
+mcp = ["mcp>=1.0"]
+s3 = ["boto3>=1.28"]
+hdfs = ["pyarrow>=14.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.5", "mypy>=1.8"]
+all = ["spark-insight[parser,ui,llm,mcp,s3,hdfs]"]
+
+[project.scripts]
+spark-insight = "spark_insight.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spark_insight"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

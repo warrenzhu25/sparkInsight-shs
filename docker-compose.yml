@@ -1,0 +1,14 @@
+services:
+  spark-insight:
+    build: .
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./examples/eventlogs:/data/eventlogs:ro
+      - spark-insight-cache:/data/cache
+    environment:
+      - SPARK_INSIGHT_LOG_DIR=/data/eventlogs
+      - SPARK_INSIGHT_CACHE_DIR=/data/cache
+
+volumes:
+  spark-insight-cache:
