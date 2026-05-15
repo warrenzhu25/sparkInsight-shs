@@ -170,6 +170,7 @@ class DiffResult(BaseModel):
     task_count_diff: int
     performance_change: str
     key_differences: list[str] = Field(default_factory=list)
+    stage_diffs: list[dict[str, Any]] = Field(default_factory=list)
 
 
 @dataclass

@@ -41,9 +41,9 @@ def test_shs_filters_task_list_and_compact_problem_endpoint(tmp_path):
     ).json()
     problems = client.get("/api/ai/local-0001/problems")
 
-    assert len(completed) == 1
+    assert len(completed) == 2
     assert running == []
-    assert len(after_start) == 1
+    assert len(after_start) == 2
     assert before_start == []
     assert len(tasks) == 1
     assert tasks[0]["taskId"] == 2
@@ -68,3 +68,26 @@ def test_task_list_sorting_and_task_summary(tmp_path):
     assert summary["quantiles"] == [0, 0.5, 1]
     assert summary["duration"] == [1000, 1000, 1200]
     assert summary["inputBytes"] == [1024, 1024, 2048]
+
+
+def test_upload_and_diff_endpoints(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    app = create_app(log_dir=str(log_dir), cache_dir=str(tmp_path / "cache"))
+    client = TestClient(app)
+
+    with open("examples/eventlogs/local-0001.json", "rb") as handle:
+        upload_1 = client.post("/api/insight/upload", files={"file": handle}).json()
+    with open("examples/eventlogs/local-0002.json", "rb") as handle:
+        upload_2 = client.post("/api/insight/upload", files={"file": handle}).json()
+    diff = client.post(
+        "/api/insight/diff",
+        json={"app_id_1": "local-0001", "app_id_2": "local-0002"},
+    ).json()
+
+    assert upload_1["id"] == "local-0001"
+    assert upload_2["id"] == "local-0002"
+    assert diff["duration_diff"] == 1800
+    assert diff["task_count_diff"] == 1
+    assert diff["performance_change"] == "degraded"
+    assert diff["stage_diffs"][0]["duration_diff"] == 4500

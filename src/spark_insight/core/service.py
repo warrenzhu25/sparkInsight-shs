@@ -135,8 +135,8 @@ class ApplicationService:
         return QueryEngine(self._load(app_id))
 
     async def upload_eventlog(self, file: UploadFile) -> ApplicationInfo:
-        suffix = Path(file.filename or "eventlog").suffix
-        destination = self.log_dir / f"upload-{uuid.uuid4().hex[:12]}{suffix}"
+        suffixes = "".join(Path(file.filename or "eventlog").suffixes)
+        destination = self.log_dir / f"upload-{uuid.uuid4().hex[:12]}{suffixes}"
         with destination.open("wb") as handle:
             shutil.copyfileobj(file.file, handle)
         try:
